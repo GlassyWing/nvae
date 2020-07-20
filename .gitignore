@@ -1,3 +1,16 @@
+# Project
+.idea/
+test/
+tests/
+logs/
+model/
+checkpoints/
+output/
+weights/*.weights
+weights/*.pth
+weights/*.pb
+font/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
