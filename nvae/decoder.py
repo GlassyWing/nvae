@@ -101,9 +101,21 @@ class Decoder(nn.Module):
         ])
 
         self.map_from_z = nn.ModuleList([
-            nn.Conv2d(z_dim + 2, z_dim, kernel_size=1),
-            nn.Conv2d(z_dim // 2 + 2, z_dim // 2, kernel_size=1),
-            nn.Conv2d(z_dim // 8 + 2, z_dim // 8, kernel_size=1)
+            nn.Sequential(
+                nn.Conv2d(z_dim + 2, z_dim, kernel_size=1),
+                Swish(),
+                nn.Conv2d(z_dim, z_dim, kernel_size=1),
+            ),
+            nn.Sequential(
+                nn.Conv2d(z_dim // 2 + 2, z_dim // 2, kernel_size=1),
+                Swish(),
+                nn.Conv2d(z_dim // 2, z_dim // 2, kernel_size=1)
+            ),
+            nn.Sequential(
+                nn.Conv2d(z_dim // 8 + 2, z_dim // 8, kernel_size=1),
+                Swish(),
+                nn.Conv2d(z_dim // 8, z_dim // 8, kernel_size=1)
+            )
         ])
 
         self.recon = nn.Conv2d(z_dim // 32, 3, kernel_size=1)
@@ -129,7 +141,6 @@ class Decoder(nn.Module):
 
             # (B, m_h, m_w, 2)
             grid = create_grid(map_h, map_w, z.device).unsqueeze(0).repeat(z.shape[0], 1, 1, 1)
-            grid = self.pos_map(grid)
 
             # (B, z_dim, m_h, m_w)
             z_sample = self.map_from_z[i](torch.cat([z_rep, grid], dim=-1).permute(0, 3, 1, 2).contiguous())
