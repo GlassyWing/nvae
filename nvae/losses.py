@@ -65,7 +65,9 @@ def discretized_mix_logistic_loss(y_hat: torch.Tensor, y: torch.Tensor, num_clas
     log_scales = torch.clamp_max(log_scales, log_scale_min)
 
     num_mixtures = y_hat.size(1) // y.size(1) // 3
-    y = y.repeat(1, num_mixtures, 1, 1)  # (B, num_mixtures * img_channels, H, W)
+
+    B, C, H, W = y.shape
+    y = y.unsqueeze(1).repeat(1, num_mixtures, 1, 1, 1).permute(0, 2, 1, 3, 4).reshape(B, -1, H, W)
 
     centered_y = y - means
     inv_stdv = torch.exp(-log_scales)
