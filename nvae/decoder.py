@@ -1,14 +1,14 @@
 import torch.nn as nn
 import torch
 
-from nvae.common import EncoderResidualBlock, Swish, DecoderResidualBlock, ResidualBlock
+from nvae.common import EncoderResidualBlock, Swish, DecoderResidualBlock, ResidualBlock, FourierMapping
 from nvae.losses import kl_2
 from nvae.utils import reparameterize
 
 
 def create_grid(h, w, device):
-    grid_y, grid_x = torch.meshgrid([torch.linspace(-1, 1, steps=h),
-                                     torch.linspace(-1, 1, steps=w)])
+    grid_y, grid_x = torch.meshgrid([torch.linspace(0, 1, steps=h),
+                                     torch.linspace(0, 1, steps=w)])
     grid = torch.stack([grid_y, grid_x], dim=-1)
     return grid.to(device)
 
@@ -25,6 +25,8 @@ class UpsampleBlock(nn.Module):
                                stride=2,
                                padding=1,
                                output_padding=1),
+            # nn.UpsamplingBilinear2d(scale_factor=2),
+            # nn.Conv2d(in_channel, out_channel, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channel), Swish(),
         )
 
@@ -102,24 +104,28 @@ class Decoder(nn.Module):
 
         self.map_from_z = nn.ModuleList([
             nn.Sequential(
-                nn.Conv2d(z_dim + 2, z_dim, kernel_size=1),
+                nn.Conv2d(z_dim * 2, z_dim, kernel_size=1),
                 Swish(),
                 nn.Conv2d(z_dim, z_dim, kernel_size=1),
             ),
             nn.Sequential(
-                nn.Conv2d(z_dim // 2 + 2, z_dim // 2, kernel_size=1),
+                nn.Conv2d(z_dim // 2 * 2, z_dim // 2, kernel_size=1),
                 Swish(),
                 nn.Conv2d(z_dim // 2, z_dim // 2, kernel_size=1)
             ),
             nn.Sequential(
-                nn.Conv2d(z_dim // 8 + 2, z_dim // 8, kernel_size=1),
+                nn.Conv2d(z_dim // 8 * 2, z_dim // 8, kernel_size=1),
                 Swish(),
                 nn.Conv2d(z_dim // 8, z_dim // 8, kernel_size=1)
             )
         ])
 
         self.recon = nn.Conv2d(z_dim // 32, 3, kernel_size=1)
-        self.pos_map = nn.Linear(2, 2)
+        self.pos_map = nn.ModuleList([
+            FourierMapping((z_dim // 2, 2), 32),
+            FourierMapping((z_dim // 4, 2), 33),
+            FourierMapping((z_dim // 16, 2), 34),
+        ])
 
     def forward(self, z, xs=None):
         """
@@ -141,6 +147,7 @@ class Decoder(nn.Module):
 
             # (B, m_h, m_w, 2)
             grid = create_grid(map_h, map_w, z.device).unsqueeze(0).repeat(z.shape[0], 1, 1, 1)
+            grid = self.pos_map[i](grid)
 
             # (B, z_dim, m_h, m_w)
             z_sample = self.map_from_z[i](torch.cat([z_rep, grid], dim=-1).permute(0, 3, 1, 2).contiguous())

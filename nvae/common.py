@@ -1,5 +1,8 @@
 import torch.nn as nn
 import torch
+import numpy as np
+
+from nvae.utils import input_mapping
 
 
 class SELayer(nn.Module):
@@ -42,6 +45,20 @@ class ResidualBlock(nn.Module):
 
     def forward(self, x):
         return x + self._seq(x)
+
+
+class FourierMapping(nn.Module):
+
+    def __init__(self, dims, seed):
+        super().__init__()
+        np.random.seed(seed)
+        B = np.random.randn(*dims)
+        np.random.seed(None)
+        self.B = torch.tensor(B, dtype=torch.float32)
+
+    def forward(self, x):
+        x = input_mapping(x, self.B.to(x.device))
+        return x
 
 
 class EncoderResidualBlock(nn.Module):
