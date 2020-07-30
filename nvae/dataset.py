@@ -53,7 +53,7 @@ class ImageFolderDataset(Dataset):
 
         image = image[top_h:top_h + w]
         image = cv2.resize(image, self.img_dim, interpolation=cv2.INTER_LINEAR)
-        image = image / 255 * 2 - 1
+        image = image / 255.
 
         return torch.tensor(image, dtype=torch.float32).permute(2, 0, 1)
 

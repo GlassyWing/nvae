@@ -52,7 +52,7 @@ class FourierMapping(nn.Module):
     def __init__(self, dims, seed):
         super().__init__()
         np.random.seed(seed)
-        B = np.random.randn(*dims)
+        B = np.random.randn(*dims) * 10
         np.random.seed(None)
         self.B = torch.tensor(B, dtype=torch.float32)
 

@@ -171,6 +171,6 @@ class Decoder(nn.Module):
             map_h *= 2 ** (len(self.decoder_blocks[i].channels) - 1)
             map_w *= 2 ** (len(self.decoder_blocks[i].channels) - 1)
 
-        x_hat = self.recon(decoder_out)
+        x_hat = torch.sigmoid(self.recon(decoder_out))
 
         return x_hat, kl_losses

@@ -7,19 +7,23 @@ from torch.nn import functional as F
 
 def recon(output, target):
     """
-    Treat q(x|z) as norm distribution
+    recon loss
     :param output: Tensor. shape = (B, C, H, W)
     :param target: Tensor. shape = (B, C, H, W)
     :return:
     """
 
-    loss = F.mse_loss(output, target)
+    # Treat q(x|z) as Norm distribution
+    # loss = F.mse_loss(output, target)
+
+    # Treat q(x|z) as Bernoulli distribution.
+    loss = F.binary_cross_entropy(output, target)
     return loss
 
 
 def kl(mu, log_var):
     """
-
+    kl loss with standard norm distribute
     :param mu:
     :param log_var:
     :return:
