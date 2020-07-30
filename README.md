@@ -14,4 +14,4 @@ As shown in the figure above, the model architecture is very simple, the image i
 
 Hair and other details are still blurry, but this is mostly because the image used is a low-quality 64x64 size.
 
-And, en, some background pixels exploded, perhaps due to recursive features.
+
