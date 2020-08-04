@@ -49,9 +49,12 @@ class ImageFolderDataset(Dataset):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         h, w, c = image.shape
-        top_h = int((h - w) / 2)
-
-        image = image[top_h:top_h + w]
+        if h > w:
+            top_h = int((h - w) / 2)
+            image = image[top_h:top_h + w]
+        else:
+            left_w = int((w - h) / 2)
+            image = image[:, left_w:left_w + h]
         image = cv2.resize(image, self.img_dim, interpolation=cv2.INTER_LINEAR)
         image = image / 255.
 
