@@ -24,7 +24,7 @@ if __name__ == '__main__':
         gen_imgs = gen_imgs.reshape(12, 12, 3, 64, 64)
 
         gen_imgs = gen_imgs.permute(0, 1, 3, 4, 2)
-        gen_imgs = (gen_imgs.cpu().numpy() + 1) / 2 * 255
+        gen_imgs = gen_imgs.cpu().numpy() * 255
         gen_imgs = gen_imgs.astype(np.uint8)
 
     for i in range(12):

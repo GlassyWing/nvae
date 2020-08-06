@@ -78,7 +78,7 @@ if __name__ == '__main__':
             z = torch.randn((1, 512)).to(device)
             gen_img, _ = model.decoder(z)
             gen_img = gen_img.permute(0, 2, 3, 1)
-            gen_img = (gen_img[0].cpu().numpy() + 1) / 2 * 255
+            gen_img = gen_img[0].cpu().numpy()  * 255
             gen_img = gen_img.astype(np.uint8)
 
             plt.imshow(gen_img)

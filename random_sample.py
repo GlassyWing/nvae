@@ -20,7 +20,7 @@ if __name__ == '__main__':
         gen_imgs, _ = model.decoder(z)
         gen_imgs = gen_imgs.permute(0, 2, 3, 1)
         for gen_img in gen_imgs:
-            gen_img = (gen_img.cpu().numpy() + 1) / 2 * 255
+            gen_img = gen_img.cpu().numpy() * 255
             gen_img = gen_img.astype(np.uint8)
 
             plt.imshow(gen_img)
