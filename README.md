@@ -12,7 +12,7 @@ As shown in the figure above, the model architecture is very simple, the image i
 
 <img src="assets/demo.jpeg">
 
-Hair and other details are still blurry, but this is mostly because the image used is a low-quality 64x64 size.
+Hair and other details are still blurry, but this is mostly because the image used is a low-quality 64x64 size and the model is realy tiny.
 
 
 ## usage
