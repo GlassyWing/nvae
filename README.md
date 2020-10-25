@@ -8,7 +8,7 @@ This implement is tiny, just for learning and validation, the model structure:
 
 As shown in the figure above, the model architecture is very simple, the image is scaled to 64x64 size, in order to reduce the amount of calculation.
 
-The following ops is not implemented, because it is just some skills, but it greatly increases the computational complexity:
+The following ops is not implemented, because it is just some tricks, but it greatly increases the computational complexity:
 
 * IAF
 * Discretized mix logistic distribution (Replaced with lighter Adaptive Loss)
