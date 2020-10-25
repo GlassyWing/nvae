@@ -8,18 +8,18 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
 
-    train_ds = ImageFolderDataset("E:\data\img_align_celeba", img_dim=64)
+    train_ds = ImageFolderDataset("G:\data\GAN\celeba\img_align_celeba", img_dim=64)
 
     device = "cpu"
     model = NVAE(z_dim=512, img_dim=(64, 64))
     model.apply(add_sn)
     model.to(device)
 
-    model.load_state_dict(torch.load("../checkpoints/ae_ckpt_7_0.080791.pth", map_location=device), strict=False)
+    model.load_state_dict(torch.load("checkpoints/ae_ckpt_3_0.795224.pth", map_location=device), strict=False)
 
     model.eval()
 
-    img = train_ds[34].unsqueeze(0).to(device)
+    img = train_ds[54].unsqueeze(0).to(device)
     ori_image = img.permute(0, 2, 3, 1)[0]
     ori_image = ori_image.numpy() * 255
     plt.imshow(ori_image.astype(np.uint8))

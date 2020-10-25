@@ -1,10 +1,13 @@
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 from nvae.decoder import Decoder
 from nvae.encoder import Encoder
 from nvae.losses import recon, kl
 from nvae.utils import reparameterize
+
+import robust_loss_pytorch
+import numpy as np
 
 
 class NVAE(nn.Module):
@@ -16,6 +19,9 @@ class NVAE(nn.Module):
 
         self.encoder = Encoder(z_dim)
         self.decoder = Decoder(z_dim)
+
+        self.adaptive_loss = robust_loss_pytorch.adaptive.AdaptiveLossFunction(
+            num_dims=1, float_dtype=np.float32, device="cuda:0")
 
     def forward(self, x):
         """
@@ -31,10 +37,14 @@ class NVAE(nn.Module):
 
         decoder_output, losses = self.decoder(z, xs)
 
-        recon_loss = recon(decoder_output, x)
+        # Treat p(x|z) as discretized_mix_logistic distribution cost so much, this is an alternative way
+        # witch combine multi distribution.
+        recon_loss = torch.mean(self.adaptive_loss.lossfun(
+            torch.mean(F.binary_cross_entropy(decoder_output, x, reduction='none'), dim=[1, 2, 3])[:, None]))
+
         kl_loss = kl(mu, log_var)
 
-        vae_loss = recon_loss + self.M_N * (kl_loss + 1 / 2 * losses[0] + 1 / 8 * losses[1])
+        vae_loss = recon_loss + self.M_N * (kl_loss + losses[0] + losses[1])
 
         return decoder_output, vae_loss
 

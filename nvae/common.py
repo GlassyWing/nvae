@@ -37,28 +37,28 @@ class ResidualBlock(nn.Module):
     def __init__(self, dim):
         super().__init__()
         self._seq = nn.Sequential(
-            nn.Conv2d(dim, dim, kernel_size=3, padding=1),
+            nn.Conv2d(dim, dim, kernel_size=5, padding=2),
             nn.Conv2d(dim, dim, kernel_size=1),
             nn.BatchNorm2d(dim), Swish(),
             nn.Conv2d(dim, dim, kernel_size=3, padding=1),
             SELayer(dim))
 
     def forward(self, x):
-        return x + self._seq(x)
+        return x + 0.1 * self._seq(x)
 
 
-class FourierMapping(nn.Module):
-
-    def __init__(self, dims, seed):
-        super().__init__()
-        np.random.seed(seed)
-        B = np.random.randn(*dims) * 10
-        np.random.seed(None)
-        self.B = torch.tensor(B, dtype=torch.float32)
-
-    def forward(self, x):
-        x = input_mapping(x, self.B.to(x.device))
-        return x
+# class FourierMapping(nn.Module):
+#
+#     def __init__(self, dims, seed):
+#         super().__init__()
+#         np.random.seed(seed)
+#         B = np.random.randn(*dims) * 10
+#         np.random.seed(None)
+#         self.B = torch.tensor(B, dtype=torch.float32)
+#
+#     def forward(self, x):
+#         x = input_mapping(x, self.B.to(x.device))
+#         return x
 
 
 class EncoderResidualBlock(nn.Module):
@@ -68,14 +68,14 @@ class EncoderResidualBlock(nn.Module):
 
         self.seq = nn.Sequential(
 
-            nn.Conv2d(dim, dim, kernel_size=3, padding=1),
+            nn.Conv2d(dim, dim, kernel_size=5, padding=2),
             nn.Conv2d(dim, dim, kernel_size=1),
             nn.BatchNorm2d(dim), Swish(),
             nn.Conv2d(dim, dim, kernel_size=3, padding=1),
             SELayer(dim))
 
     def forward(self, x):
-        return x + self.seq(x)
+        return x + 0.1 * self.seq(x)
 
 
 class DecoderResidualBlock(nn.Module):
@@ -93,4 +93,4 @@ class DecoderResidualBlock(nn.Module):
             SELayer(dim))
 
     def forward(self, x):
-        return x + self._seq(x)
+        return x + 0.1 * self._seq(x)

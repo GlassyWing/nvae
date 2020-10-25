@@ -28,7 +28,7 @@ def kl(mu, log_var):
     :param log_var:
     :return:
     """
-    loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - torch.exp(log_var), dim=1)
+    loss = -0.5 * torch.sum(1 + log_var - mu ** 2 - torch.exp(log_var), dim=[1, 2, 3])
     return torch.mean(loss, dim=0)
 
 
@@ -36,7 +36,7 @@ def kl_2(delta_mu, delta_log_var, mu, log_var):
     var = torch.exp(log_var)
     delta_var = torch.exp(delta_log_var)
 
-    loss = -0.5 * torch.sum(1 + delta_log_var - delta_mu ** 2 / var - delta_var, dim=1)
+    loss = -0.5 * torch.sum(1 + delta_log_var - delta_mu ** 2 / var - delta_var, dim=[1, 2, 3])
     return torch.mean(loss, dim=0)
 
 

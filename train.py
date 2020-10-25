@@ -49,6 +49,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adamax(model.parameters(), lr=0.001)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15)
 
+    step = 0
     for epoch in range(epochs):
         model.train()
 
@@ -61,24 +62,38 @@ if __name__ == '__main__':
             image = image.to(device)
             image_recon, loss = model(image)
 
-            log_str = "---- [Epoch %d/%d, Step %d/%d] loss: %.6f----" % (
+            log_str = "\r---- [Epoch %d/%d, Step %d/%d] loss: %.6f----" % (
                 epoch, epochs, i, len(train_dataloader), loss.item())
             logging.info(log_str)
 
             loss.backward()
             optimizer.step()
 
-        scheduler.step(epoch)
+            step += 1
+
+            if step != 0 and step % 100 == 0:
+                with torch.no_grad():
+                    z = torch.randn((1, 512, 2, 2)).to(device)
+                    gen_img, _ = model.decoder(z)
+                    gen_img = gen_img.permute(0, 2, 3, 1)
+                    gen_img = gen_img[0].cpu().numpy() * 255
+                    gen_img = gen_img.astype(np.uint8)
+
+                    plt.imshow(gen_img)
+                    # plt.savefig(f"output/ae_ckpt_%d_%.6f.png" % (epoch, total_loss))
+                    plt.show()
+
+        scheduler.step()
 
         torch.save(model.state_dict(), f"checkpoints/ae_ckpt_%d_%.6f.pth" % (epoch, loss.item()))
 
         model.eval()
 
         with torch.no_grad():
-            z = torch.randn((1, 512)).to(device)
+            z = torch.randn((1, 512, 2, 2)).to(device)
             gen_img, _ = model.decoder(z)
             gen_img = gen_img.permute(0, 2, 3, 1)
-            gen_img = gen_img[0].cpu().numpy()  * 255
+            gen_img = gen_img[0].cpu().numpy() * 255
             gen_img = gen_img.astype(np.uint8)
 
             plt.imshow(gen_img)

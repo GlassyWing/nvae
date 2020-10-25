@@ -16,6 +16,13 @@ def reparameterize(mu, std):
     return z
 
 
+def create_grid(h, w, device):
+    grid_y, grid_x = torch.meshgrid([torch.linspace(0, 1, steps=h),
+                                     torch.linspace(0, 1, steps=w)])
+    grid = torch.stack([grid_y, grid_x], dim=-1)
+    return grid.to(device)
+
+
 def input_mapping(x, B):
     if B is None:
         return x

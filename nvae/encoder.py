@@ -56,7 +56,7 @@ class Encoder(nn.Module):
         ])
 
         self.condition_x = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
+            # nn.AdaptiveAvgPool2d(1),
             Swish(),
             nn.Conv2d(z_dim, z_dim * 2, kernel_size=1)
         )
@@ -69,6 +69,6 @@ class Encoder(nn.Module):
             last_x = x
             xs.append(x)
 
-        mu, log_var = self.condition_x(last_x).squeeze(-1).squeeze(-1).chunk(2, dim=-1)
+        mu, log_var = self.condition_x(last_x).chunk(2, dim=1)
 
         return mu, log_var, xs[:-1][::-1]
