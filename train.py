@@ -12,6 +12,49 @@ from nvae.dataset import ImageFolderDataset
 from nvae.utils import add_sn
 from nvae.vae_celeba import NVAE
 
+
+class WarmupKLLoss:
+
+    def __init__(self, init_weights, steps, M_N=0.005):
+        self.init_weights = init_weights
+        self.M_N = M_N
+        self.speeds = [(1. - w) / s for w, s in zip(init_weights, steps)]
+        self.steps = np.cumsum(steps)
+        self.stage = 0
+
+    def _get_stage(self, step):
+        while True:
+
+            if self.stage > len(self.steps) - 1:
+                break
+
+            if step <= self.steps[self.stage]:
+                return self.stage
+            else:
+                self.stage += 1
+
+        return self.stage
+
+    def get_loss(self, step, losses):
+        loss = 0.
+        stage = self._get_stage(step)
+
+        for i, l in enumerate(losses):
+            # Update weights
+            if i == stage:
+                speed = self.speeds[stage]
+                t = step if stage == 0 else step - self.steps[stage - 1]
+                w = min(self.init_weights[i] + speed * t, 1.)
+            elif i < stage:
+                w = 1.
+            else:
+                w = self.init_weights[i]
+            l = losses[i] * w
+            loss += l
+
+        return self.M_N * loss
+
+
 if __name__ == '__main__':
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
@@ -36,7 +79,7 @@ if __name__ == '__main__':
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    model = NVAE(z_dim=512, img_dim=(64, 64), M_N=opt.batch_size / len(train_ds))
+    model = NVAE(z_dim=512, img_dim=(64, 64))
 
     # apply Spectral Normalization
     model.apply(add_sn)
@@ -46,8 +89,12 @@ if __name__ == '__main__':
     if opt.pretrained_weights:
         model.load_state_dict(torch.load(opt.pretrained_weights, map_location=device), strict=False)
 
+    warmup_kl = WarmupKLLoss(init_weights=[1., 1 / 2., 1 / 8.],
+                             steps=[4500, 3000, 1500],
+                             M_N=opt.batch_size / len(train_ds))
+
     optimizer = torch.optim.Adamax(model.parameters(), lr=0.001)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=1e-4)
 
     step = 0
     for epoch in range(epochs):
@@ -60,7 +107,9 @@ if __name__ == '__main__':
             optimizer.zero_grad()
 
             image = image.to(device)
-            image_recon, loss = model(image)
+            image_recon, recon_loss, kl_losses = model(image)
+            kl_loss = warmup_kl.get_loss(step, kl_losses)
+            loss = recon_loss + kl_loss
 
             log_str = "\r---- [Epoch %d/%d, Step %d/%d] loss: %.6f----" % (
                 epoch, epochs, i, len(train_dataloader), loss.item())

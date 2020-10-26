@@ -12,16 +12,14 @@ import numpy as np
 
 class NVAE(nn.Module):
 
-    def __init__(self, z_dim, img_dim, M_N=0.005):
+    def __init__(self, z_dim, img_dim):
         super().__init__()
-
-        self.M_N = M_N
 
         self.encoder = Encoder(z_dim)
         self.decoder = Decoder(z_dim)
 
         self.adaptive_loss = robust_loss_pytorch.adaptive.AdaptiveLossFunction(
-            num_dims=1, float_dtype=np.float32, device="cuda:0")
+            num_dims=1, float_dtype=np.float32, device="cpu")
 
     def forward(self, x):
         """
@@ -44,9 +42,7 @@ class NVAE(nn.Module):
 
         kl_loss = kl(mu, log_var)
 
-        vae_loss = recon_loss + self.M_N * (kl_loss + losses[0] + losses[1])
-
-        return decoder_output, vae_loss
+        return decoder_output, recon_loss, [kl_loss] + losses
 
 
 if __name__ == '__main__':
