@@ -65,13 +65,11 @@ class Decoder(nn.Module):
         self.condition_z = nn.ModuleList([
             nn.Sequential(
                 ResidualBlock(z_dim // 2),
-                # nn.AdaptiveAvgPool2d(1),
                 Swish(),
                 nn.Conv2d(z_dim // 2, z_dim, kernel_size=1)
             ),
             nn.Sequential(
                 ResidualBlock(z_dim // 8),
-                # nn.AdaptiveAvgPool2d(1),
                 Swish(),
                 nn.Conv2d(z_dim // 8, z_dim // 4, kernel_size=1)
             )
@@ -82,34 +80,14 @@ class Decoder(nn.Module):
             nn.Sequential(
                 ResidualBlock(z_dim),
                 nn.Conv2d(z_dim, z_dim // 2, kernel_size=1),
-                # nn.AdaptiveAvgPool2d(1),
                 Swish(),
                 nn.Conv2d(z_dim // 2, z_dim, kernel_size=1)
             ),
             nn.Sequential(
                 ResidualBlock(z_dim // 4),
                 nn.Conv2d(z_dim // 4, z_dim // 8, kernel_size=1),
-                # nn.AdaptiveAvgPool2d(1),
                 Swish(),
                 nn.Conv2d(z_dim // 8, z_dim // 4, kernel_size=1)
-            )
-        ])
-
-        self.map_from_z = nn.ModuleList([
-            nn.Sequential(
-                nn.Conv2d(z_dim * 2, z_dim, kernel_size=1),
-                Swish(),
-                nn.Conv2d(z_dim, z_dim, kernel_size=1),
-            ),
-            nn.Sequential(
-                nn.Conv2d(z_dim // 2 * 2, z_dim // 2, kernel_size=1),
-                Swish(),
-                nn.Conv2d(z_dim // 2, z_dim // 2, kernel_size=1)
-            ),
-            nn.Sequential(
-                nn.Conv2d(z_dim // 8 * 2, z_dim // 8, kernel_size=1),
-                Swish(),
-                nn.Conv2d(z_dim // 8, z_dim // 8, kernel_size=1)
             )
         ])
 
@@ -121,7 +99,7 @@ class Decoder(nn.Module):
     def forward(self, z, xs=None):
         """
 
-        :param z: shape. = (B, z_dim)
+        :param z: shape. = (B, z_dim, map_h, map_w)
         :return:
         """
 
@@ -132,12 +110,12 @@ class Decoder(nn.Module):
 
         kl_losses = []
 
-        for i in range(len(self.map_from_z)):
+        for i in range(len(self.decoder_residual_blocks)):
 
             z_sample = torch.cat([decoder_out, z], dim=1)
             decoder_out = self.decoder_residual_blocks[i](self.decoder_blocks[i](z_sample))
 
-            if i == len(self.map_from_z) - 1:
+            if i == len(self.decoder_residual_blocks) - 1:
                 break
 
             mu, log_var = self.condition_z[i](decoder_out).chunk(2, dim=1)

@@ -56,7 +56,6 @@ class Encoder(nn.Module):
         ])
 
         self.condition_x = nn.Sequential(
-            # nn.AdaptiveAvgPool2d(1),
             Swish(),
             nn.Conv2d(z_dim, z_dim * 2, kernel_size=1)
         )
