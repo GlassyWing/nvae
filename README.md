@@ -15,8 +15,6 @@ The following ops are not implemented, because they are just some tricks, but th
 
 ## Example
 
-After 10 epoches:
-
 <img src="assets/demo.jpeg">
 
 Hair and other details are still blurry, but this is mostly because the image used is a low-quality 64x64 size and the model is realy tiny.
