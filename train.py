@@ -15,12 +15,28 @@ from nvae.vae_celeba import NVAE
 
 class WarmupKLLoss:
 
-    def __init__(self, init_weights, steps, M_N=0.005):
+    def __init__(self, init_weights, steps,
+                 M_N=0.005,
+                 eta_M_N=1e-5,
+                 M_N_decay_step=3000):
+        """
+        预热KL损失，先对各级别的KL损失进行预热，预热完成后，对M_N的值进行衰减,所有衰减策略采用线性衰减
+        :param init_weights: 各级别 KL 损失的初始权重
+        :param steps: 各级别KL损失从初始权重增加到1所需的步数
+        :param M_N: 初始M_N值
+        :param eta_M_N: 最小M_N值
+        :param M_N_decay_step: 从初始M_N值到最小M_N值所需的衰减步数
+        """
         self.init_weights = init_weights
         self.M_N = M_N
+        self.eta_M_N = eta_M_N
+        self.M_N_decay_step = M_N_decay_step
         self.speeds = [(1. - w) / s for w, s in zip(init_weights, steps)]
         self.steps = np.cumsum(steps)
         self.stage = 0
+        self._ready_start_step = 0
+        self._ready_for_M_N = False
+        self._M_N_decay_speed = (self.M_N - self.eta_M_N) / self.M_N_decay_step
 
     def _get_stage(self, step):
         while True:
@@ -49,10 +65,22 @@ class WarmupKLLoss:
                 w = 1.
             else:
                 w = self.init_weights[i]
+
+            # 如果所有级别的KL损失的预热都已完成
+            if self._ready_for_M_N == False and i == len(losses) - 1 and w == 1.:
+                # 准备M_N的衰减
+                self._ready_for_M_N = True
+                self._ready_start_step = step
             l = losses[i] * w
             loss += l
 
-        return self.M_N * loss
+        if self._ready_for_M_N:
+            M_N = max(self.M_N - self._M_N_decay_speed *
+                      (step - self._ready_start_step), self.eta_M_N)
+        else:
+            M_N = self.M_N
+
+        return M_N * loss
 
 
 if __name__ == '__main__':
@@ -89,11 +117,14 @@ if __name__ == '__main__':
     if opt.pretrained_weights:
         model.load_state_dict(torch.load(opt.pretrained_weights, map_location=device), strict=False)
 
-    warmup_kl = WarmupKLLoss(init_weights=[1., 1 / 2., 1 / 8.],
+    warmup_kl = WarmupKLLoss(init_weights=[1., 1. / 2, 1. / 8],
                              steps=[4500, 3000, 1500],
-                             M_N=opt.batch_size / len(train_ds))
+                             M_N=opt.batch_size / len(train_ds),
+                             eta_M_N=5e-6,
+                             M_N_decay_step=36000)
+    print('M_N=', warmup_kl.M_N, 'ETA_M_N=', warmup_kl.eta_M_N)
 
-    optimizer = torch.optim.Adamax(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adamax(model.parameters(), lr=0.01)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=1e-4)
 
     step = 0
