@@ -11,12 +11,12 @@ if __name__ == '__main__':
     model.apply(add_sn)
     model.to(device)
 
-    model.load_state_dict(torch.load("checkpoints/ae_ckpt_103_0.074130.pth", map_location=device), strict=False)
+    model.load_state_dict(torch.load("checkpoints/ae_ckpt_169_0.689621.pth", map_location=device), strict=False)
 
     model.eval()
 
     with torch.no_grad():
-        z = torch.randn((25, 512)).to(device)
+        z = torch.randn((25, 512, 2, 2)).to(device)
         gen_imgs, _ = model.decoder(z)
         gen_imgs = gen_imgs.permute(0, 2, 3, 1)
         for gen_img in gen_imgs:
