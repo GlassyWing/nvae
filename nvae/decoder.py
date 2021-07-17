@@ -96,7 +96,9 @@ class Decoder(nn.Module):
             nn.Conv2d(z_dim // 32, 3, kernel_size=1),
         )
 
-    def forward(self, z, xs=None):
+        self.zs = []
+
+    def forward(self, z, xs=None, mode="random", freeze_level=-1):
         """
 
         :param z: shape. = (B, z_dim, map_h, map_w)
@@ -109,6 +111,8 @@ class Decoder(nn.Module):
         decoder_out = torch.zeros(B, D, map_h, map_w, device=z.device, dtype=z.dtype)
 
         kl_losses = []
+        if freeze_level != -1 and len(self.zs) == 0 :
+            self.zs.append(z)
 
         for i in range(len(self.decoder_residual_blocks)):
 
@@ -127,7 +131,17 @@ class Decoder(nn.Module):
                 mu = mu + delta_mu
                 log_var = log_var + delta_log_var
 
-            z = reparameterize(mu, torch.exp(0.5 * log_var))
+            if mode == "fix" and i < freeze_level:
+                if len(self.zs) < freeze_level + 1:
+                    z = reparameterize(mu, 0)
+                    self.zs.append(z)
+                else:
+                    z = self.zs[i + 1]
+            elif mode == "fix":
+                z = reparameterize(mu, 0 if i == 0 else torch.exp(0.5 * log_var))
+            else:
+                z = reparameterize(mu, torch.exp(0.5 * log_var))
+
             map_h *= 2 ** (len(self.decoder_blocks[i].channels) - 1)
             map_w *= 2 ** (len(self.decoder_blocks[i].channels) - 1)
 
